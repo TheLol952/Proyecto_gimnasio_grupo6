@@ -25,6 +25,7 @@ replay_pid*
 
 # Maven / Spring Boot
 **/target/
+/.vscode/
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
