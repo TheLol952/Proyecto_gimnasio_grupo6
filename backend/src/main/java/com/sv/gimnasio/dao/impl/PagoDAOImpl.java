@@ -31,7 +31,7 @@ public class PagoDAOImpl implements PagoDAO {
     }
 
     @Override
-    public Pago guardar(Pago pago) {
+    public synchronized Pago guardar(Pago pago) {
         pagos.add(pago);
         storage.guardarTodos(pagos);
         return pago;

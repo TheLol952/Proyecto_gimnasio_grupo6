@@ -38,12 +38,12 @@ public class SuscripcionDAOImpl implements SuscripcionDAO {
     @Override
     public List<Suscripcion> obtenerPorCliente(String idCliente) {
         return cache.values().stream()
-                .filter(s -> s.getIdCliente().equals(idCliente))
+                .filter(s -> idCliente.equals(s.getIdCliente()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Suscripcion guardar(Suscripcion suscripcion) {
+    public synchronized Suscripcion guardar(Suscripcion suscripcion) {
         cache.put(suscripcion.getIdSuscripcion(), suscripcion);
         storage.guardarTodos(new ArrayList<>(cache.values()));
         return suscripcion;

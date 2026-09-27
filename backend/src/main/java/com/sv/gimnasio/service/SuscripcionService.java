@@ -3,6 +3,7 @@ package com.sv.gimnasio.service;
 import com.sv.gimnasio.dao.PlanDAO;
 import com.sv.gimnasio.dao.SuscripcionDAO;
 import com.sv.gimnasio.dao.PagoDAO;
+import com.sv.gimnasio.dao.ClienteDAO;
 import com.sv.gimnasio.dto.SuscripcionRequestDTO;
 import com.sv.gimnasio.model.Pago;
 import com.sv.gimnasio.model.Plan;
@@ -30,14 +31,16 @@ public class SuscripcionService {
     private final SuscripcionDAO suscripcionDAO;
     private final PlanDAO planDAO;
     private final PagoDAO pagoDAO;
+    private final ClienteDAO clienteDAO;
 
     /** idCliente -> ultima suscripcion registrada. */
     private final Map<String, Suscripcion> suscripcionPorCliente = new HashMap<>();
 
-    public SuscripcionService(SuscripcionDAO suscripcionDAO, PlanDAO planDAO, PagoDAO pagoDAO) {
+    public SuscripcionService(SuscripcionDAO suscripcionDAO, PlanDAO planDAO, PagoDAO pagoDAO, ClienteDAO clienteDAO) {
         this.suscripcionDAO = suscripcionDAO;
         this.planDAO = planDAO;
         this.pagoDAO = pagoDAO;
+        this.clienteDAO = clienteDAO;
     }
 
     @PostConstruct
@@ -55,6 +58,9 @@ public class SuscripcionService {
      * (POLIMORFISMO: PlanMensual y PlanAnual calculan distinto).
      */
     public Suscripcion venderPlan(SuscripcionRequestDTO dto) {
+        clienteDAO.obtenerPorId(dto.getIdCliente())
+                .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado: " + dto.getIdCliente()));
+
         Plan plan = planDAO.obtenerPorId(dto.getIdPlan())
                 .orElseThrow(() -> new NoSuchElementException("Plan no encontrado: " + dto.getIdPlan()));
 
