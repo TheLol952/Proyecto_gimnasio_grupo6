@@ -7,16 +7,16 @@ import java.time.LocalDateTime;
 /** DTO de entrada para agendar una sesion cliente-entrenador. */
 public class SesionRequestDTO {
 
-    @NotBlank
+    @NotBlank(message = "El cliente es obligatorio")
     private String idCliente;
 
-    @NotBlank
+    @NotBlank(message = "El entrenador es obligatorio")
     private String idEntrenador;
 
-    @NotNull
+    @NotNull(message = "La hora de inicio es obligatoria")
     private LocalDateTime horaInicio;
 
-    @NotNull
+    @NotNull(message = "La hora de fin es obligatoria")
     private LocalDateTime horaFin;
 
     public String getIdCliente() {

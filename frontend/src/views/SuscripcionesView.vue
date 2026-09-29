@@ -229,7 +229,7 @@ select { width: 100%; box-sizing: border-box; border: 1px solid #d0d5dd; border-
 button { border: 0; border-radius: 9px; padding: 10px 14px; cursor: pointer; font-weight: 700; }
 button:disabled { opacity: .6; cursor: not-allowed; }
 .primary { width: 100%; }
-.secondary { border: 1px solid #d0d5dd; background: #fff; }
+.secondary { border: 1px solid #d0d5dd; background: #fff; color: #1f4e5f; }
 .table-wrapper { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid #eaecf0; white-space: nowrap; }

@@ -21,7 +21,11 @@ public class EntrenadorDAOImpl implements EntrenadorDAO {
     @PostConstruct
     public void init() {
         storage = new DatFileStorage<>(dataDir + "/entrenadores.dat");
-        storage.leerTodos().forEach(e -> cache.put(e.getIdEntrenador(), e));
+        storage.leerTodos().forEach(entrenador -> {
+            if (entrenador.getIdEntrenador() != null && !entrenador.getIdEntrenador().isBlank()) {
+                cache.put(entrenador.getIdEntrenador(), entrenador);
+            }
+        });
     }
 
     @Override
@@ -31,11 +35,18 @@ public class EntrenadorDAOImpl implements EntrenadorDAO {
 
     @Override
     public Optional<Entrenador> obtenerPorId(String id) {
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(cache.get(id));
     }
 
     @Override
     public Entrenador guardar(Entrenador entrenador) {
+        if (entrenador == null || entrenador.getIdEntrenador() == null
+                || entrenador.getIdEntrenador().isBlank()) {
+            throw new IllegalArgumentException("El entrenador y su ID son obligatorios.");
+        }
         cache.put(entrenador.getIdEntrenador(), entrenador);
         storage.guardarTodos(new ArrayList<>(cache.values()));
         return entrenador;

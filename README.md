@@ -62,6 +62,7 @@ mediante un proxy configurado en `vite.config.js` (`/api` → `http://localhost:
 | Método | Ruta                              | Historia de usuario |
 |--------|-----------------------------------|----------------------|
 | GET/POST | `/api/clientes`                 | HU-001 |
+| GET/POST | `/api/entrenadores`             | Gestión de entrenadores |
 | GET    | `/api/planes`                     | Soporte a HU-002 |
 | POST   | `/api/suscripciones`              | HU-002 |
 | GET    | `/api/suscripciones/cliente/{id}` | HU-002 |
