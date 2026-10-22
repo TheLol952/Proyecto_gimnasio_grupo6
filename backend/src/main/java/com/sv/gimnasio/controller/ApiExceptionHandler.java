@@ -1,5 +1,8 @@
 package com.sv.gimnasio.controller;
 
+import com.sv.gimnasio.exception.PersistenciaException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,6 +15,8 @@ import java.util.NoSuchElementException;
 /** Convierte errores de negocio y validación en respuestas útiles para la interfaz. */
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> manejarValidacion(MethodArgumentNotValidException ex) {
@@ -30,5 +35,20 @@ public class ApiExceptionHandler {
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, String>> manejarNoEncontrado(NoSuchElementException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+    }
+
+    /**
+     * Errores de base de datos (JDBC): la causa tecnica completa va al log;
+     * al frontend solo llega un mensaje seguro, sin SQL ni trazas.
+     */
+    @ExceptionHandler(PersistenciaException.class)
+    public ResponseEntity<Map<String, String>> manejarPersistencia(PersistenciaException ex) {
+        log.error("Error de persistencia: {}", ex.getMessage(), ex);
+        if (ex.isTemporal()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("message",
+                    "El servicio de datos no esta disponible en este momento. Intente de nuevo en unos minutos."));
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message",
+                "Ocurrio un error al procesar la operacion. Si el problema persiste, contacte al administrador."));
     }
 }
