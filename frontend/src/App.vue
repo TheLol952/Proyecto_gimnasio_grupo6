@@ -4,6 +4,7 @@
       <h1>Gimnasio - Panel Administrativo</h1>
       <nav class="app__nav">
         <router-link to="/clientes">Clientes</router-link>
+        <router-link to="/entrenadores">Entrenadores</router-link>
         <router-link to="/suscripciones">Suscripciones</router-link>
         <router-link to="/acceso">Acceso QR</router-link>
         <router-link to="/sesiones">Sesiones</router-link>

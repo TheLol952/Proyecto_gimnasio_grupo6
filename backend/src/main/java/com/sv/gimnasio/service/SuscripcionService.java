@@ -10,6 +10,7 @@ import com.sv.gimnasio.model.Plan;
 import com.sv.gimnasio.model.Suscripcion;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -57,6 +58,7 @@ public class SuscripcionService {
      * fecha de fin y del precio final se delega en el propio Plan
      * (POLIMORFISMO: PlanMensual y PlanAnual calculan distinto).
      */
+    @Transactional // suscripcion y pago se guardan juntos o no se guarda ninguno
     public Suscripcion venderPlan(SuscripcionRequestDTO dto) {
         clienteDAO.obtenerPorId(dto.getIdCliente())
                 .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado: " + dto.getIdCliente()));
