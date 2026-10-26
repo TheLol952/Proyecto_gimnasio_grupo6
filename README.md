@@ -13,6 +13,12 @@ conexiones Tomcat JDBC. El proyecto no utiliza JPA ni Hibernate.
 Repositorio público:
 [github.com/TheLol952/Proyecto_gimnasio_grupo6](https://github.com/TheLol952/Proyecto_gimnasio_grupo6)
 
+> **Configuración académica:** el repositorio incluye intencionalmente un
+> archivo `.env` con credenciales exclusivamente demostrativas. No pertenecen
+> a servicios reales y no deben reutilizarse en producción. Se versionan para
+> que el docente pueda ejecutar la entrega sin crear usuarios, bases de datos
+> ni archivos de configuración.
+
 ## Funcionalidades
 
 | Historia | Funcionalidad | Estado |
@@ -82,6 +88,9 @@ frontend/src/
 ├── router/
 ├── services/
 └── views/
+
+.env             Configuración y claves exclusivamente demostrativas
+compose.yaml      Entorno reproducible de base de datos, backend y frontend
 ```
 
 ## Programación orientada a objetos
@@ -96,55 +105,90 @@ frontend/src/
 - **Genéricos:** `JdbcEntityMapper<T>` y `BaseJdbcDAO.leerLista(...)` reutilizan
   el mapeo de cualquier entidad desde un `ResultSet`.
 
-## Requisitos para ejecutar
+## Ejecución rápida para evaluación
 
-- JDK 21.
-- Maven 3.9 o superior.
-- Node.js 18 o superior y npm.
-- PostgreSQL 16 con el cliente `psql` disponible.
-- Puerto 8081 libre para el backend y 5173 para el frontend.
+La ruta recomendada requiere únicamente Git y Docker Desktop con Docker
+Compose. No es necesario instalar PostgreSQL, Java, Maven, Node.js ni crear
+manualmente la base o su usuario.
 
-## Configuración de PostgreSQL
-
-Crear la base y el usuario con una cuenta administradora de PostgreSQL. La clave
-debe ser local y no debe guardarse en Git:
-
-```sql
-CREATE ROLE gimnasio_app WITH LOGIN PASSWORD 'defina-una-clave-local';
-CREATE DATABASE gimnasio OWNER gimnasio_app;
-```
-
-Definir las variables de entorno. Ejemplo en PowerShell:
-
-```powershell
-$env:DB_URL = "jdbc:postgresql://localhost:5432/gimnasio"
-$env:DB_USER = "gimnasio_app"
-$env:DB_PASSWORD = "su-clave-local"
-```
-
-Ejemplo en Bash:
+Desde la raíz del repositorio:
 
 ```bash
-export DB_URL='jdbc:postgresql://localhost:5432/gimnasio'
-export DB_USER='gimnasio_app'
-export DB_PASSWORD='su-clave-local'
-export PGPASSWORD="$DB_PASSWORD"
+docker compose up --build
 ```
 
-Preparar las tablas y datos de demostración:
+La primera ejecución descarga las imágenes, compila las aplicaciones, crea
+PostgreSQL 16, aplica `database/schema.sql`, carga `database/data.sql` y levanta
+todos los servicios. Cuando aparezcan como iniciados, abrir:
+
+- Interfaz: `http://localhost:5173`
+- API: `http://localhost:8081/api`
+
+Para detener la demostración:
 
 ```bash
-bash scripts/init-db.sh
+docker compose down
 ```
 
-En Windows también puede utilizarse:
+Si se necesita reiniciar también los datos demostrativos desde cero, el
+siguiente comando elimina exclusivamente el volumen Docker de este proyecto:
+
+```bash
+docker compose down -v
+```
+
+## Archivo `.env` demostrativo
+
+El archivo `.env` de la raíz es la única fuente versionada de contraseñas y
+valores configurables de la demostración. Spring Boot lo carga automáticamente,
+Docker Compose lo utiliza para aprovisionar PostgreSQL y los scripts de
+inicialización lo leen antes de ejecutar SQL.
+
+Incluye:
+
+- conexión JDBC, nombre de base, usuario y contraseña de PostgreSQL;
+- puertos del backend y frontend;
+- usuarios y contraseñas demostrativos de la tabla `usuario`.
+
+Estas credenciales son públicas por diseño, solo sirven para evaluación local y
+no protegen información real. Para un despliegue real, `.env` debe excluirse de
+Git, las claves deben rotarse y administrarse con un gestor de secretos.
+
+## Ejecución local alternativa
+
+Esta alternativa requiere JDK 21, Maven 3.9+, Node.js 18+, npm, PostgreSQL 16 y
+el cliente `psql`. La base y el usuario indicados en `.env` deben existir en la
+instalación local; para una evaluación sin preparación se debe usar Docker.
+
+Preparar esquema y datos en PowerShell:
 
 ```powershell
 .\scripts\init-db.ps1
 ```
 
-Los scripts llaman a `database/schema.sql` y `database/data.sql`. Ambos son
-re-ejecutables y no eliminan tablas ni datos existentes.
+O en Bash:
+
+```bash
+bash scripts/init-db.sh
+```
+
+Los scripts cargan automáticamente `.env`; no hace falta exportar cada variable.
+Después, iniciar el backend:
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Y en otra terminal iniciar el frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Los scripts SQL son re-ejecutables y no eliminan tablas ni datos existentes.
 
 ## DataSource y pool de conexiones
 
@@ -173,28 +217,6 @@ Todas las consultas variables usan `PreparedStatement` y los recursos se
 cierran con `try-with-resources`. `TransactionAwareDataSourceProxy` permite que
 las operaciones JDBC de suscripción y pago participen en la misma transacción
 de Spring.
-
-## Cómo ejecutar
-
-Backend:
-
-```bash
-cd backend
-mvn spring-boot:run
-```
-
-La API queda disponible en `http://localhost:8081/api`.
-
-Frontend, en otra terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-La interfaz queda disponible en `http://localhost:5173`. Vite redirige `/api`
-al backend en el puerto 8081.
 
 ## Cómo ejecutar las pruebas
 
@@ -276,9 +298,9 @@ Para el QR simulado, un cliente `CLI-ABC12345` utiliza `QR-ABC12345`.
 `database/data.sql` agrega planes, clientes, entrenadores, suscripciones,
 pagos, sesiones y accesos mediante `ON CONFLICT DO NOTHING`.
 
-La tabla `usuario` contiene cuentas de demostración para evidenciar el modelo y
-los roles, pero el proyecto no expone todavía un módulo de autenticación; por
-ello esas cuentas no se utilizan para ingresar a la interfaz.
+La tabla `usuario` contiene las cuentas declaradas en `.env` para evidenciar el
+modelo y los roles, pero el proyecto no expone todavía un módulo de
+autenticación; por ello esas cuentas no se utilizan para ingresar a la interfaz.
 
 ## Equipo
 
