@@ -1,6 +1,7 @@
 package com.sv.gimnasio.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 /** DTO de entrada para vender un plan/suscripcion a un cliente. */
 public class SuscripcionRequestDTO {
@@ -11,6 +12,8 @@ public class SuscripcionRequestDTO {
     @NotBlank(message = "El id del plan es obligatorio")
     private String idPlan;
 
+    @NotBlank(message = "El metodo de pago es obligatorio")
+    @Pattern(regexp = "EFECTIVO|TARJETA", message = "El metodo de pago debe ser EFECTIVO o TARJETA")
     private String metodoPago;
 
     public String getIdCliente() {

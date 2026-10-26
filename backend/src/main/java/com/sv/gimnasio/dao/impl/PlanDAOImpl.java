@@ -13,7 +13,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,11 +44,7 @@ public class PlanDAOImpl extends BaseJdbcDAO implements PlanDAO {
         try (Connection con = abrirConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            List<Plan> planes = new ArrayList<>();
-            while (rs.next()) {
-                planes.add(mapear(rs));
-            }
-            return planes;
+            return leerLista(rs, this::mapear);
         } catch (SQLException e) {
             throw error("listar planes", e);
         }

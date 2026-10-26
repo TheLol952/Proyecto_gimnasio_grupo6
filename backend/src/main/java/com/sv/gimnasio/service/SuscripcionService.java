@@ -8,6 +8,7 @@ import com.sv.gimnasio.dto.SuscripcionRequestDTO;
 import com.sv.gimnasio.model.Pago;
 import com.sv.gimnasio.model.Plan;
 import com.sv.gimnasio.model.Suscripcion;
+import com.sv.gimnasio.util.IdGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +17,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.UUID;
 
 /**
  * Logica de negocio de suscripciones (HU-002). La vigencia se consulta en la
@@ -31,14 +31,17 @@ public class SuscripcionService {
     private final PagoDAO pagoDAO;
     private final ClienteDAO clienteDAO;
     private final Clock reloj;
+    private final IdGenerator idGenerator;
 
     public SuscripcionService(SuscripcionDAO suscripcionDAO, PlanDAO planDAO,
-                               PagoDAO pagoDAO, ClienteDAO clienteDAO, Clock reloj) {
+                               PagoDAO pagoDAO, ClienteDAO clienteDAO, Clock reloj,
+                               IdGenerator idGenerator) {
         this.suscripcionDAO = suscripcionDAO;
         this.planDAO = planDAO;
         this.pagoDAO = pagoDAO;
         this.clienteDAO = clienteDAO;
         this.reloj = reloj;
+        this.idGenerator = idGenerator;
     }
 
     public List<Suscripcion> listarPorCliente(String idCliente) {
@@ -62,11 +65,11 @@ public class SuscripcionService {
         LocalDate fin = plan.calcularFechaFin(inicio);
 
         Suscripcion suscripcion = new Suscripcion(
-                "SUS-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
+                idGenerator.generar("SUS"),
                 dto.getIdCliente(), plan.getIdPlan(), inicio, fin, "ACTIVA");
         suscripcionDAO.guardar(suscripcion);
 
-        Pago pago = new Pago("PAG-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
+        Pago pago = new Pago(idGenerator.generar("PAG"),
                 suscripcion.getIdSuscripcion(), LocalDateTime.now(reloj), plan.precioFinal(),
                 dto.getMetodoPago() == null ? "EFECTIVO" : dto.getMetodoPago());
         pagoDAO.guardar(pago);

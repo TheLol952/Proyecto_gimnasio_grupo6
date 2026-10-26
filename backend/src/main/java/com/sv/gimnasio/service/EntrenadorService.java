@@ -3,22 +3,25 @@ package com.sv.gimnasio.service;
 import com.sv.gimnasio.dao.EntrenadorDAO;
 import com.sv.gimnasio.dto.EntrenadorDTO;
 import com.sv.gimnasio.model.Entrenador;
+import com.sv.gimnasio.util.IdGenerator;
+import com.sv.gimnasio.util.TextoUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.UUID;
 
 /** Lógica de negocio para el registro y consulta de entrenadores. */
 @Service
 public class EntrenadorService {
 
     private final EntrenadorDAO entrenadorDAO;
+    private final IdGenerator idGenerator;
 
-    public EntrenadorService(EntrenadorDAO entrenadorDAO) {
+    public EntrenadorService(EntrenadorDAO entrenadorDAO, IdGenerator idGenerator) {
         this.entrenadorDAO = entrenadorDAO;
+        this.idGenerator = idGenerator;
     }
 
     public List<Entrenador> listar() {
@@ -35,17 +38,14 @@ public class EntrenadorService {
     public Entrenador registrar(EntrenadorDTO dto) {
         validarDTO(dto);
 
-        String id = "ENT-" + UUID.randomUUID()
-                .toString()
-                .substring(0, 8)
-                .toUpperCase();
+        String id = idGenerator.generar("ENT");
 
         Entrenador entrenador = new Entrenador(
                 id,
                 dto.getNombre().trim(),
                 dto.getApellido().trim(),
-                normalizar(dto.getTelefono()),
-                normalizar(dto.getCorreo()),
+                TextoUtils.normalizarOpcional(dto.getTelefono()),
+                TextoUtils.normalizarOpcional(dto.getCorreo()),
                 dto.getEspecialidad().trim(),
                 dto.getTurno().trim()
         );
@@ -61,8 +61,8 @@ public class EntrenadorService {
 
         entrenador.setNombre(dto.getNombre().trim());
         entrenador.setApellido(dto.getApellido().trim());
-        entrenador.setTelefono(normalizar(dto.getTelefono()));
-        entrenador.setCorreo(normalizar(dto.getCorreo()));
+        entrenador.setTelefono(TextoUtils.normalizarOpcional(dto.getTelefono()));
+        entrenador.setCorreo(TextoUtils.normalizarOpcional(dto.getCorreo()));
         entrenador.setEspecialidad(dto.getEspecialidad().trim());
         entrenador.setTurno(dto.getTurno().trim());
 
@@ -87,11 +87,4 @@ public class EntrenadorService {
         }
     }
 
-    private String normalizar(String valor) {
-        if (valor == null) {
-            return null;
-        }
-        String resultado = valor.trim();
-        return resultado.isEmpty() ? null : resultado;
-    }
 }

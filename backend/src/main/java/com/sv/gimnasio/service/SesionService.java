@@ -7,6 +7,7 @@ import com.sv.gimnasio.dto.HorarioDisponibleDTO;
 import com.sv.gimnasio.dto.SesionRequestDTO;
 import com.sv.gimnasio.model.Entrenador;
 import com.sv.gimnasio.model.Sesion;
+import com.sv.gimnasio.util.IdGenerator;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -17,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.TreeMap;
-import java.util.UUID;
 
 /**
  * HU-004/HU-005: agenda de sesiones cliente-entrenador. Usa una COLECCION
@@ -31,13 +31,15 @@ public class SesionService {
     private final ClienteDAO clienteDAO;
     private final EntrenadorDAO entrenadorDAO;
     private final Clock reloj;
+    private final IdGenerator idGenerator;
 
     public SesionService(SesionDAO sesionDAO, ClienteDAO clienteDAO,
-                         EntrenadorDAO entrenadorDAO, Clock reloj) {
+                         EntrenadorDAO entrenadorDAO, Clock reloj, IdGenerator idGenerator) {
         this.sesionDAO = sesionDAO;
         this.clienteDAO = clienteDAO;
         this.entrenadorDAO = entrenadorDAO;
         this.reloj = reloj;
+        this.idGenerator = idGenerator;
     }
 
     public Sesion agendar(SesionRequestDTO dto) {
@@ -74,7 +76,7 @@ public class SesionService {
             throw new IllegalStateException("El entrenador ya tiene una sesion en ese horario.");
         }
 
-        Sesion sesion = new Sesion("SES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
+        Sesion sesion = new Sesion(idGenerator.generar("SES"),
                 dto.getIdCliente(), dto.getIdEntrenador(), dto.getHoraInicio(), dto.getHoraFin(), "PROGRAMADA");
         return sesionDAO.guardar(sesion);
     }

@@ -12,7 +12,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 /** DAO de pagos sobre PostgreSQL con JDBC (tabla pago). Un pago, una vez registrado, no se edita. */
@@ -32,16 +31,7 @@ public class PagoDAOImpl extends BaseJdbcDAO implements PagoDAO {
         try (Connection con = abrirConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            List<Pago> pagos = new ArrayList<>();
-            while (rs.next()) {
-                pagos.add(new Pago(
-                        rs.getString("id_pago"),
-                        rs.getString("id_suscripcion"),
-                        rs.getObject("fecha", LocalDateTime.class),
-                        rs.getBigDecimal("monto").doubleValue(),
-                        rs.getString("metodo_pago")));
-            }
-            return pagos;
+            return leerLista(rs, this::mapear);
         } catch (SQLException e) {
             throw error("listar pagos", e);
         }
@@ -64,5 +54,14 @@ public class PagoDAOImpl extends BaseJdbcDAO implements PagoDAO {
         } catch (SQLException e) {
             throw error("guardar el pago " + pago.getIdPago(), e);
         }
+    }
+
+    private Pago mapear(ResultSet rs) throws SQLException {
+        return new Pago(
+                rs.getString("id_pago"),
+                rs.getString("id_suscripcion"),
+                rs.getObject("fecha", LocalDateTime.class),
+                rs.getBigDecimal("monto").doubleValue(),
+                rs.getString("metodo_pago"));
     }
 }
