@@ -8,23 +8,20 @@ import com.sv.gimnasio.dto.SuscripcionRequestDTO;
 import com.sv.gimnasio.model.Pago;
 import com.sv.gimnasio.model.Plan;
 import com.sv.gimnasio.model.Suscripcion;
-import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
 /**
- * Logica de negocio de suscripciones (HU-002). Usa una COLECCION HashMap
- * indexada por idCliente para responder en O(1) si el cliente tiene una
- * suscripcion vigente, algo que se consulta constantemente desde el control
- * de acceso por QR simulado (HU-003).
+ * Logica de negocio de suscripciones (HU-002). La vigencia se consulta en la
+ * base de datos para mantener una unica fuente de verdad y evitar que una
+ * caché conserve cambios que hayan sido revertidos por una transaccion.
  */
 @Service
 public class SuscripcionService {
@@ -33,20 +30,15 @@ public class SuscripcionService {
     private final PlanDAO planDAO;
     private final PagoDAO pagoDAO;
     private final ClienteDAO clienteDAO;
+    private final Clock reloj;
 
-    /** idCliente -> ultima suscripcion registrada. */
-    private final Map<String, Suscripcion> suscripcionPorCliente = new HashMap<>();
-
-    public SuscripcionService(SuscripcionDAO suscripcionDAO, PlanDAO planDAO, PagoDAO pagoDAO, ClienteDAO clienteDAO) {
+    public SuscripcionService(SuscripcionDAO suscripcionDAO, PlanDAO planDAO,
+                               PagoDAO pagoDAO, ClienteDAO clienteDAO, Clock reloj) {
         this.suscripcionDAO = suscripcionDAO;
         this.planDAO = planDAO;
         this.pagoDAO = pagoDAO;
         this.clienteDAO = clienteDAO;
-    }
-
-    @PostConstruct
-    public void init() {
-        suscripcionDAO.obtenerTodos().forEach(s -> suscripcionPorCliente.put(s.getIdCliente(), s));
+        this.reloj = reloj;
     }
 
     public List<Suscripcion> listarPorCliente(String idCliente) {
@@ -66,17 +58,16 @@ public class SuscripcionService {
         Plan plan = planDAO.obtenerPorId(dto.getIdPlan())
                 .orElseThrow(() -> new NoSuchElementException("Plan no encontrado: " + dto.getIdPlan()));
 
-        LocalDate inicio = LocalDate.now();
+        LocalDate inicio = LocalDate.now(reloj);
         LocalDate fin = plan.calcularFechaFin(inicio);
 
         Suscripcion suscripcion = new Suscripcion(
                 "SUS-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
                 dto.getIdCliente(), plan.getIdPlan(), inicio, fin, "ACTIVA");
         suscripcionDAO.guardar(suscripcion);
-        suscripcionPorCliente.put(dto.getIdCliente(), suscripcion);
 
         Pago pago = new Pago("PAG-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(),
-                suscripcion.getIdSuscripcion(), LocalDateTime.now(), plan.precioFinal(),
+                suscripcion.getIdSuscripcion(), LocalDateTime.now(reloj), plan.precioFinal(),
                 dto.getMetodoPago() == null ? "EFECTIVO" : dto.getMetodoPago());
         pagoDAO.guardar(pago);
 
@@ -85,13 +76,10 @@ public class SuscripcionService {
 
     /** Usado por AccesoService (HU-003) para validar el ingreso por QR. */
     public boolean tieneSuscripcionActiva(String idCliente) {
-        Suscripcion suscripcion = suscripcionPorCliente.get(idCliente);
-        return suscripcion != null
-                && "ACTIVA".equals(suscripcion.getEstado())
-                && !suscripcion.getFechaFin().isBefore(LocalDate.now());
-    }
-
-    public Map<String, Suscripcion> obtenerCacheSuscripcionesActivas() {
-        return suscripcionPorCliente;
+        LocalDate hoy = LocalDate.now(reloj);
+        return suscripcionDAO.obtenerPorCliente(idCliente).stream()
+                .anyMatch(suscripcion -> "ACTIVA".equals(suscripcion.getEstado())
+                        && suscripcion.getFechaFin() != null
+                        && !suscripcion.getFechaFin().isBefore(hoy));
     }
 }
