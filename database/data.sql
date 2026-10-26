@@ -3,7 +3,8 @@
 --   psql -U gimnasio_app -d gimnasio -f database/data.sql
 -- Las fechas de suscripciones son relativas a la fecha de ejecucion para
 -- que la demo del hilo de vencimientos (HU-007) siempre tenga casos.
--- Las contrasenas de usuario son SOLO de demostracion.
+-- Los usuarios y contrasenas se reciben desde el .env mediante variables de
+-- psql. Son SOLO de demostracion y no se utilizan para iniciar sesion.
 -- =====================================================================
 
 INSERT INTO plan (id_plan, nombre, tipo, precio_base, descuento) VALUES
@@ -52,7 +53,7 @@ INSERT INTO acceso (id_acceso, id_cliente, fecha_hora, codigo_qr, estado) VALUES
 ON CONFLICT (id_acceso) DO NOTHING;
 
 INSERT INTO usuario (id_usuario, usuario, contrasena, rol, estado) VALUES
-    ('USR-DEMO0001', 'admin',        'admin123',  'ADMINISTRADOR', 'ACTIVO'),
-    ('USR-DEMO0002', 'recepcion',    'recep123',  'RECEPCIONISTA', 'ACTIVO'),
-    ('USR-DEMO0003', 'entrenador1',  'entre123',  'ENTRENADOR',    'ACTIVO')
+    ('USR-DEMO0001', :'DEMO_ADMIN_USER',     :'DEMO_ADMIN_PASSWORD',     'ADMINISTRADOR', 'ACTIVO'),
+    ('USR-DEMO0002', :'DEMO_RECEPTION_USER', :'DEMO_RECEPTION_PASSWORD', 'RECEPCIONISTA', 'ACTIVO'),
+    ('USR-DEMO0003', :'DEMO_TRAINER_USER',   :'DEMO_TRAINER_PASSWORD',   'ENTRENADOR',    'ACTIVO')
 ON CONFLICT (id_usuario) DO NOTHING;
