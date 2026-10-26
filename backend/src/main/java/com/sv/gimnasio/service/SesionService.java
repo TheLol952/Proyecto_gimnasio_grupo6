@@ -7,6 +7,8 @@ import com.sv.gimnasio.dto.SesionRequestDTO;
 import com.sv.gimnasio.model.Sesion;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -22,14 +24,28 @@ public class SesionService {
     private final SesionDAO sesionDAO;
     private final ClienteDAO clienteDAO;
     private final EntrenadorDAO entrenadorDAO;
+    private final Clock reloj;
 
-    public SesionService(SesionDAO sesionDAO, ClienteDAO clienteDAO, EntrenadorDAO entrenadorDAO) {
+    public SesionService(SesionDAO sesionDAO, ClienteDAO clienteDAO,
+                         EntrenadorDAO entrenadorDAO, Clock reloj) {
         this.sesionDAO = sesionDAO;
         this.clienteDAO = clienteDAO;
         this.entrenadorDAO = entrenadorDAO;
+        this.reloj = reloj;
     }
 
     public Sesion agendar(SesionRequestDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("Los datos de la sesion son obligatorios.");
+        }
+        if (dto.getHoraInicio() == null || dto.getHoraFin() == null) {
+            throw new IllegalArgumentException("Las horas de inicio y fin son obligatorias.");
+        }
+        LocalDateTime ahora = LocalDateTime.now(reloj);
+        if (!dto.getHoraInicio().isAfter(ahora)) {
+            throw new IllegalArgumentException(
+                    "La hora de inicio debe ser posterior a la fecha y hora actuales.");
+        }
         if (dto.getHoraFin().isBefore(dto.getHoraInicio())
                 || dto.getHoraFin().isEqual(dto.getHoraInicio())) {
             throw new IllegalArgumentException("La hora de fin debe ser posterior a la hora de inicio.");
@@ -41,7 +57,7 @@ public class SesionService {
             throw new IllegalArgumentException("El entrenador seleccionado no existe.");
         }
 
-        TreeMap<java.time.LocalDateTime, Sesion> agendaEntrenador = new TreeMap<>();
+        TreeMap<LocalDateTime, Sesion> agendaEntrenador = new TreeMap<>();
         for (Sesion s : sesionDAO.obtenerPorEntrenador(dto.getIdEntrenador())) {
             agendaEntrenador.put(s.getHoraInicio(), s);
         }

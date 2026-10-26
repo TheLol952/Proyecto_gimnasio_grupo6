@@ -1,6 +1,7 @@
 package com.sv.gimnasio.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
@@ -14,6 +15,7 @@ public class SesionRequestDTO {
     private String idEntrenador;
 
     @NotNull(message = "La hora de inicio es obligatoria")
+    @Future(message = "La hora de inicio debe ser posterior a la fecha y hora actuales")
     private LocalDateTime horaInicio;
 
     @NotNull(message = "La hora de fin es obligatoria")

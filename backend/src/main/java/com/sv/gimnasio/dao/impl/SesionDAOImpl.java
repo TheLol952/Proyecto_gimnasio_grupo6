@@ -79,6 +79,10 @@ public class SesionDAOImpl extends BaseJdbcDAO implements SesionDAO {
             if ("23P01".equals(e.getSQLState())) {
                 throw new IllegalStateException("El entrenador ya tiene una sesion en ese horario.");
             }
+            if ("22007".equals(e.getSQLState())) {
+                throw new IllegalArgumentException(
+                        "La hora de inicio debe ser posterior a la fecha y hora actuales.");
+            }
             throw error("guardar la sesion " + sesion.getIdSesion(), e);
         }
     }

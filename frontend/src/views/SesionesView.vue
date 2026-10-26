@@ -45,12 +45,23 @@
 
         <label>
           Hora de inicio *
-          <input v-model="form.horaInicio" type="datetime-local" required />
+          <input
+            v-model="form.horaInicio"
+            type="datetime-local"
+            :min="fechaHoraMinima"
+            required
+            @focus="actualizarFechaHoraMinima"
+          />
         </label>
 
         <label>
           Hora de fin *
-          <input v-model="form.horaFin" type="datetime-local" :min="form.horaInicio" required />
+          <input
+            v-model="form.horaFin"
+            type="datetime-local"
+            :min="form.horaInicio || fechaHoraMinima"
+            required
+          />
         </label>
 
         <button
@@ -118,6 +129,18 @@ const guardando = ref(false);
 const mensaje = ref("");
 const error = ref(false);
 const form = ref({ idCliente: "", idEntrenador: "", horaInicio: "", horaFin: "" });
+const fechaHoraMinima = ref("");
+
+function calcularFechaHoraMinima() {
+  const fecha = new Date(Date.now() + 60_000);
+  fecha.setSeconds(0, 0);
+  const desplazamiento = fecha.getTimezoneOffset() * 60_000;
+  return new Date(fecha.getTime() - desplazamiento).toISOString().slice(0, 16);
+}
+
+function actualizarFechaHoraMinima() {
+  fechaHoraMinima.value = calcularFechaHoraMinima();
+}
 
 function obtenerMensajeError(e, mensajePorDefecto) {
   return e.response?.data?.message
@@ -176,6 +199,13 @@ async function cargarDatos() {
 async function agendar() {
   mensaje.value = "";
 
+  actualizarFechaHoraMinima();
+  if (new Date(form.value.horaInicio) <= new Date()) {
+    mensaje.value = "La hora de inicio debe ser posterior a la fecha y hora actuales.";
+    error.value = true;
+    return;
+  }
+
   if (new Date(form.value.horaFin) <= new Date(form.value.horaInicio)) {
     mensaje.value = "La hora de fin debe ser posterior a la hora de inicio.";
     error.value = true;
@@ -198,7 +228,10 @@ async function agendar() {
   }
 }
 
-onMounted(cargarDatos);
+onMounted(() => {
+  actualizarFechaHoraMinima();
+  cargarDatos();
+});
 </script>
 
 <style scoped>
