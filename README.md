@@ -105,13 +105,86 @@ compose.yaml      Entorno reproducible de base de datos, backend y frontend
 - **Genéricos:** `JdbcEntityMapper<T>` y `BaseJdbcDAO.leerLista(...)` reutilizan
   el mapeo de cualquier entidad desde un `ResultSet`.
 
+## ¿Por qué se decidió utilizar Docker?
+
+Docker se incorporó como mecanismo de distribución y demostración, no como un
+reemplazo de la arquitectura Java/Vue/JDBC. La decisión responde a cuatro
+necesidades de la entrega:
+
+- **Reproducibilidad:** todos ejecutan las mismas versiones de PostgreSQL,
+  Java y Node.js, independientemente de las herramientas instaladas localmente.
+- **Preparación automática:** Compose crea la base, aplica el esquema, carga
+  los datos demostrativos y conecta frontend, backend y PostgreSQL.
+- **Aislamiento:** los servicios y dependencias del proyecto no modifican la
+  instalación local de PostgreSQL ni requieren crear usuarios manualmente.
+- **Evaluación rápida:** reduce errores de configuración y evita el problema de
+  que el proyecto funcione solamente en el equipo donde fue desarrollado.
+
+El código continúa pudiendo ejecutarse sin contenedores mediante las
+instrucciones de la sección **Ejecución local alternativa**.
+
+## Instalación de Docker desde la terminal
+
+### Windows 10/11
+
+Docker Desktop utiliza WSL 2 para ejecutar los contenedores Linux del proyecto.
+Abrir PowerShell como administrador y ejecutar:
+
+```powershell
+wsl --install
+wsl --update
+winget install --exact --id Docker.DockerDesktop
+```
+
+Si Windows solicita reiniciar después de instalar WSL, hacerlo antes de
+continuar. Luego iniciar Docker Desktop desde el menú Inicio y esperar a que el
+motor indique que está listo. Comprobar la instalación en una nueva terminal:
+
+```powershell
+docker --version
+docker compose version
+docker run --rm hello-world
+```
+
+Documentación oficial:
+[Docker Desktop para Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+y [WinGet](https://learn.microsoft.com/windows/package-manager/winget/).
+
+### Ubuntu Linux
+
+Para esta demostración académica puede utilizarse el instalador oficial de
+Docker para entornos de desarrollo:
+
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker "$USER"
+newgrp docker
+docker run --rm hello-world
+docker compose version
+```
+
+El grupo `docker` permite administrar contenedores con privilegios elevados;
+solo debe agregarse un usuario de confianza. Para servidores o producción se
+recomienda instalar desde el repositorio `apt` oficial en lugar del script de
+conveniencia. Véanse las guías oficiales de
+[instalación en Ubuntu](https://docs.docker.com/engine/install/ubuntu/) y
+[configuración posterior](https://docs.docker.com/engine/install/linux-postinstall/).
+
 ## Ejecución rápida para evaluación
 
 La ruta recomendada requiere únicamente Git y Docker Desktop con Docker
 Compose. No es necesario instalar PostgreSQL, Java, Maven, Node.js ni crear
 manualmente la base o su usuario.
 
-Desde la raíz del repositorio:
+1. Clonar el repositorio y entrar en su carpeta:
+
+```bash
+git clone https://github.com/TheLol952/Proyecto_gimnasio_grupo6.git
+cd Proyecto_gimnasio_grupo6
+```
+
+2. Levantar y construir el proyecto desde la raíz:
 
 ```bash
 docker compose up --build
@@ -119,12 +192,22 @@ docker compose up --build
 
 La primera ejecución descarga las imágenes, compila las aplicaciones, crea
 PostgreSQL 16, aplica `database/schema.sql`, carga `database/data.sql` y levanta
-todos los servicios. Cuando aparezcan como iniciados, abrir:
+todos los servicios. La terminal debe permanecer abierta mientras se realiza la
+demostración.
+
+3. Cuando `backend`, `frontend` y `database` aparezcan iniciados, abrir:
 
 - Interfaz: `http://localhost:5173`
 - API: `http://localhost:8081/api`
 
-Para detener la demostración:
+El estado también puede comprobarse desde otra terminal con:
+
+```bash
+docker compose ps
+```
+
+4. Para finalizar, presionar `Ctrl+C` en la terminal del arranque y después
+retirar los contenedores de la demostración:
 
 ```bash
 docker compose down
