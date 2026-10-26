@@ -13,7 +13,7 @@
 
     <div class="grid">
       <form class="card form-card" @submit.prevent="registrarCliente">
-        <h3>Registrar cliente</h3>
+        <h3>{{ idEnEdicion ? "Actualizar cliente" : "Registrar cliente" }}</h3>
 
         <label>
           Nombre *
@@ -36,7 +36,10 @@
         </label>
 
         <button class="primary" type="submit" :disabled="guardando">
-          {{ guardando ? "Guardando..." : "Registrar cliente" }}
+          {{ guardando ? "Guardando..." : idEnEdicion ? "Guardar cambios" : "Registrar cliente" }}
+        </button>
+        <button v-if="idEnEdicion" class="secondary" type="button" @click="cancelarEdicion">
+          Cancelar edición
         </button>
 
         <p v-if="mensaje" :class="error ? 'msg-error' : 'msg-ok'" role="alert">
@@ -73,6 +76,7 @@
                 <th>Teléfono</th>
                 <th>Correo</th>
                 <th>Registro</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -82,6 +86,11 @@
                 <td>{{ cliente.telefono || "—" }}</td>
                 <td>{{ cliente.correo || "—" }}</td>
                 <td>{{ cliente.fechaRegistro || "—" }}</td>
+                <td>
+                  <button class="table-action" type="button" @click="editarCliente(cliente)">
+                    Editar
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -101,6 +110,7 @@ const cargando = ref(false);
 const guardando = ref(false);
 const mensaje = ref("");
 const error = ref(false);
+const idEnEdicion = ref("");
 
 const form = ref({
   nombre: "",
@@ -143,11 +153,17 @@ async function registrarCliente() {
   guardando.value = true;
 
   try {
-    await api.post("/clientes", form.value);
+    if (idEnEdicion.value) {
+      await api.put(`/clientes/${idEnEdicion.value}`, form.value);
+    } else {
+      await api.post("/clientes", form.value);
+    }
 
-    mensaje.value = "Cliente registrado correctamente.";
+    mensaje.value = idEnEdicion.value
+      ? "Cliente actualizado correctamente."
+      : "Cliente registrado correctamente.";
     error.value = false;
-    form.value = { nombre: "", apellido: "", telefono: "", correo: "" };
+    cancelarEdicion(false);
     await cargarClientes();
   } catch (e) {
     mensaje.value = obtenerMensajeError(e, "Ocurrió un error al registrar el cliente.");
@@ -155,6 +171,24 @@ async function registrarCliente() {
   } finally {
     guardando.value = false;
   }
+}
+
+function editarCliente(cliente) {
+  idEnEdicion.value = cliente.idCliente;
+  form.value = {
+    nombre: cliente.nombre,
+    apellido: cliente.apellido,
+    telefono: cliente.telefono || "",
+    correo: cliente.correo || "",
+  };
+  mensaje.value = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cancelarEdicion(limpiarMensaje = true) {
+  idEnEdicion.value = "";
+  form.value = { nombre: "", apellido: "", telefono: "", correo: "" };
+  if (limpiarMensaje) mensaje.value = "";
 }
 
 onMounted(cargarClientes);
@@ -177,6 +211,7 @@ button { border: 0; border-radius: 9px; padding: 10px 14px; cursor: pointer; fon
 button:disabled { opacity: .6; cursor: not-allowed; }
 .primary { width: 100%; }
 .secondary { border: 1px solid #d0d5dd; background: #fff; color: #1f4e5f; }
+.table-action { padding: 6px 10px; font-size: 12px; }
 .search { max-width: 240px; }
 .table-wrapper { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }

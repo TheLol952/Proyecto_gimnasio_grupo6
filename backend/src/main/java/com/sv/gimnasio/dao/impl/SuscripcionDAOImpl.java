@@ -10,7 +10,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,7 +38,7 @@ public class SuscripcionDAOImpl extends BaseJdbcDAO implements SuscripcionDAO {
         try (Connection con = abrirConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            return leerLista(rs);
+            return leerLista(rs, this::mapear);
         } catch (SQLException e) {
             throw error("listar suscripciones", e);
         }
@@ -69,7 +68,7 @@ public class SuscripcionDAOImpl extends BaseJdbcDAO implements SuscripcionDAO {
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, idCliente);
             try (ResultSet rs = ps.executeQuery()) {
-                return leerLista(rs);
+                return leerLista(rs, this::mapear);
             }
         } catch (SQLException e) {
             throw error("listar las suscripciones del cliente " + idCliente, e);
@@ -95,14 +94,6 @@ public class SuscripcionDAOImpl extends BaseJdbcDAO implements SuscripcionDAO {
         } catch (SQLException e) {
             throw error("guardar la suscripcion " + suscripcion.getIdSuscripcion(), e);
         }
-    }
-
-    private List<Suscripcion> leerLista(ResultSet rs) throws SQLException {
-        List<Suscripcion> lista = new ArrayList<>();
-        while (rs.next()) {
-            lista.add(mapear(rs));
-        }
-        return lista;
     }
 
     private Suscripcion mapear(ResultSet rs) throws SQLException {

@@ -10,7 +10,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,11 +37,7 @@ public class ClienteDAOImpl extends BaseJdbcDAO implements ClienteDAO {
         try (Connection con = abrirConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            List<Cliente> clientes = new ArrayList<>();
-            while (rs.next()) {
-                clientes.add(mapear(rs));
-            }
-            return clientes;
+            return leerLista(rs, this::mapear);
         } catch (SQLException e) {
             throw error("listar clientes", e);
         }

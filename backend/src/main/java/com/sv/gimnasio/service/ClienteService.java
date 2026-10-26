@@ -3,22 +3,25 @@ package com.sv.gimnasio.service;
 import com.sv.gimnasio.dao.ClienteDAO;
 import com.sv.gimnasio.dto.ClienteDTO;
 import com.sv.gimnasio.model.Cliente;
+import com.sv.gimnasio.util.IdGenerator;
+import com.sv.gimnasio.util.TextoUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.UUID;
 
 /** Lógica de negocio de la HU-001: registro y consulta de clientes. */
 @Service
 public class ClienteService {
 
     private final ClienteDAO clienteDAO;
+    private final IdGenerator idGenerator;
 
-    public ClienteService(ClienteDAO clienteDAO) {
+    public ClienteService(ClienteDAO clienteDAO, IdGenerator idGenerator) {
         this.clienteDAO = clienteDAO;
+        this.idGenerator = idGenerator;
     }
 
     public List<Cliente> listar() {
@@ -33,17 +36,14 @@ public class ClienteService {
     public Cliente registrar(ClienteDTO dto) {
         validarDTO(dto);
 
-        String id = "CLI-" + UUID.randomUUID()
-                .toString()
-                .substring(0, 8)
-                .toUpperCase();
+        String id = idGenerator.generar("CLI");
 
         Cliente cliente = new Cliente(
                 id,
                 dto.getNombre().trim(),
                 dto.getApellido().trim(),
-                normalizar(dto.getTelefono()),
-                normalizar(dto.getCorreo()),
+                TextoUtils.normalizarOpcional(dto.getTelefono()),
+                TextoUtils.normalizarOpcional(dto.getCorreo()),
                 LocalDate.now()
         );
 
@@ -59,8 +59,8 @@ public class ClienteService {
 
         cliente.setNombre(dto.getNombre().trim());
         cliente.setApellido(dto.getApellido().trim());
-        cliente.setTelefono(normalizar(dto.getTelefono()));
-        cliente.setCorreo(normalizar(dto.getCorreo()));
+        cliente.setTelefono(TextoUtils.normalizarOpcional(dto.getTelefono()));
+        cliente.setCorreo(TextoUtils.normalizarOpcional(dto.getCorreo()));
 
         return clienteDAO.guardar(cliente);
     }
@@ -77,11 +77,4 @@ public class ClienteService {
         }
     }
 
-    private String normalizar(String valor) {
-        if (valor == null) {
-            return null;
-        }
-        String resultado = valor.trim();
-        return resultado.isEmpty() ? null : resultado;
-    }
 }

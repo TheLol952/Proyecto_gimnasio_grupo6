@@ -1,12 +1,15 @@
 package com.sv.gimnasio.controller;
 
+import com.sv.gimnasio.dto.HorarioDisponibleDTO;
 import com.sv.gimnasio.dto.SesionRequestDTO;
 import com.sv.gimnasio.model.Sesion;
 import com.sv.gimnasio.service.SesionService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /** REST API - Agenda de sesiones (HU-004 / HU-005). */
@@ -35,5 +38,12 @@ public class SesionController {
     @GetMapping("/entrenador/{idEntrenador}")
     public List<Sesion> listarPorEntrenador(@PathVariable String idEntrenador) {
         return sesionService.listarPorEntrenador(idEntrenador);
+    }
+
+    @GetMapping("/disponibilidad")
+    public List<HorarioDisponibleDTO> consultarDisponibilidad(
+            @RequestParam String idEntrenador,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        return sesionService.consultarDisponibilidad(idEntrenador, fecha);
     }
 }

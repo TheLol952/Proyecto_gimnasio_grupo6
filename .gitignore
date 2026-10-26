@@ -43,7 +43,10 @@ pnpm-debug.log*
 backend/data/*.dat
 
 # Environment variables and local secrets
+# Excepcion academica: el .env raiz contiene exclusivamente credenciales
+# demostrativas y se versiona para que la evaluacion sea reproducible.
 .env
+!.env
 .env.*
 !.env.example
 application-local.properties

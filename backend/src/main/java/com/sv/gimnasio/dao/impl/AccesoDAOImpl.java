@@ -10,7 +10,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 /** DAO de accesos QR sobre PostgreSQL con JDBC (tabla acceso). Es un historial: solo se inserta. */
@@ -31,16 +30,7 @@ public class AccesoDAOImpl extends BaseJdbcDAO implements AccesoDAO {
         try (Connection con = abrirConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            List<Acceso> accesos = new ArrayList<>();
-            while (rs.next()) {
-                accesos.add(new Acceso(
-                        rs.getString("id_acceso"),
-                        rs.getString("id_cliente"),
-                        rs.getObject("fecha_hora", LocalDateTime.class),
-                        rs.getString("codigo_qr"),
-                        rs.getString("estado")));
-            }
-            return accesos;
+            return leerLista(rs, this::mapear);
         } catch (SQLException e) {
             throw error("listar accesos", e);
         }
@@ -63,5 +53,14 @@ public class AccesoDAOImpl extends BaseJdbcDAO implements AccesoDAO {
         } catch (SQLException e) {
             throw error("guardar el acceso " + acceso.getIdAcceso(), e);
         }
+    }
+
+    private Acceso mapear(ResultSet rs) throws SQLException {
+        return new Acceso(
+                rs.getString("id_acceso"),
+                rs.getString("id_cliente"),
+                rs.getObject("fecha_hora", LocalDateTime.class),
+                rs.getString("codigo_qr"),
+                rs.getString("estado"));
     }
 }

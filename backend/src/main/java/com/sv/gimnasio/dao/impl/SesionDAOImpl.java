@@ -10,7 +10,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 /** DAO de sesiones cliente-entrenador sobre PostgreSQL con JDBC (tabla sesion). */
@@ -38,7 +37,7 @@ public class SesionDAOImpl extends BaseJdbcDAO implements SesionDAO {
         try (Connection con = abrirConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            return leerLista(rs);
+            return leerLista(rs, this::mapear);
         } catch (SQLException e) {
             throw error("listar sesiones", e);
         }
@@ -51,7 +50,7 @@ public class SesionDAOImpl extends BaseJdbcDAO implements SesionDAO {
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, idEntrenador);
             try (ResultSet rs = ps.executeQuery()) {
-                return leerLista(rs);
+                return leerLista(rs, this::mapear);
             }
         } catch (SQLException e) {
             throw error("listar las sesiones del entrenador " + idEntrenador, e);
@@ -79,21 +78,21 @@ public class SesionDAOImpl extends BaseJdbcDAO implements SesionDAO {
             if ("23P01".equals(e.getSQLState())) {
                 throw new IllegalStateException("El entrenador ya tiene una sesion en ese horario.");
             }
+            if ("22007".equals(e.getSQLState())) {
+                throw new IllegalArgumentException(
+                        "La hora de inicio debe ser posterior a la fecha y hora actuales.");
+            }
             throw error("guardar la sesion " + sesion.getIdSesion(), e);
         }
     }
 
-    private List<Sesion> leerLista(ResultSet rs) throws SQLException {
-        List<Sesion> lista = new ArrayList<>();
-        while (rs.next()) {
-            lista.add(new Sesion(
-                    rs.getString("id_sesion"),
-                    rs.getString("id_cliente"),
-                    rs.getString("id_entrenador"),
-                    rs.getObject("hora_inicio", LocalDateTime.class),
-                    rs.getObject("hora_fin", LocalDateTime.class),
-                    rs.getString("estado")));
-        }
-        return lista;
+    private Sesion mapear(ResultSet rs) throws SQLException {
+        return new Sesion(
+                rs.getString("id_sesion"),
+                rs.getString("id_cliente"),
+                rs.getString("id_entrenador"),
+                rs.getObject("hora_inicio", LocalDateTime.class),
+                rs.getObject("hora_fin", LocalDateTime.class),
+                rs.getString("estado"));
     }
 }

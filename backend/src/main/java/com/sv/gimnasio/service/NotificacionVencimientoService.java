@@ -4,13 +4,20 @@ import com.sv.gimnasio.dao.SuscripcionDAO;
 import com.sv.gimnasio.model.Suscripcion;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * PROGRAMACION CONCURRENTE (HU-007).
@@ -22,7 +29,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * "activa" a un cliente cuya membresia ya vencio, o el administrador se
  * enteraria demasiado tarde de los vencimientos proximos.
  *
- * Por ello se ejecuta un HILO independiente en segundo plano que, de forma
+ * Por ello se ejecuta una tarea programada en segundo plano que, de forma
  * periodica y sin bloquear el hilo principal de la aplicacion (ni las
  * peticiones REST atendidas por Spring), recorre la coleccion de
  * suscripciones para:
@@ -33,46 +40,47 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Service
 public class NotificacionVencimientoService {
 
+    private static final Logger log = LoggerFactory.getLogger(NotificacionVencimientoService.class);
     private static final long INTERVALO_MS = 60_000; // cada 1 minuto (demo); en produccion podria ser cada hora.
     private static final int DIAS_AVISO_PREVIO = 3;
 
     private final SuscripcionDAO suscripcionDAO;
+    private final Clock reloj;
 
-    /** Coleccion concurrente: el hilo de fondo escribe, los controladores REST leen. */
-    private final Queue<Suscripcion> pendientesDeNotificar = new ConcurrentLinkedQueue<>();
+    /**
+     * Mapa concurrente que evita encolar la misma suscripcion en cada ciclo.
+     * La tarea escribe mientras los controladores REST consultan una copia.
+     */
+    private final Map<String, Suscripcion> pendientesDeNotificar = new ConcurrentHashMap<>();
 
-    private Thread hiloVerificador;
-    private volatile boolean activo = true;
+    private ScheduledExecutorService ejecutor;
 
-    public NotificacionVencimientoService(SuscripcionDAO suscripcionDAO) {
+    public NotificacionVencimientoService(SuscripcionDAO suscripcionDAO, Clock reloj) {
         this.suscripcionDAO = suscripcionDAO;
+        this.reloj = reloj;
     }
 
     @PostConstruct
     public void iniciar() {
-        hiloVerificador = new Thread(this::verificarVencimientosPeriodicamente, "hilo-verificacion-vencimientos");
-        hiloVerificador.setDaemon(true);
-        hiloVerificador.start();
+        ejecutor = Executors.newSingleThreadScheduledExecutor(tarea -> {
+            Thread hilo = new Thread(tarea, "verificacion-vencimientos");
+            hilo.setDaemon(true);
+            return hilo;
+        });
+        ejecutor.scheduleWithFixedDelay(
+                this::verificarConManejoDeErrores, 0, INTERVALO_MS, TimeUnit.MILLISECONDS);
     }
 
-    private void verificarVencimientosPeriodicamente() {
-        while (activo) {
-            try {
-                verificarUnaVez();
-            } catch (Exception e) {
-                System.err.println("[hilo-verificacion-vencimientos] Error: " + e.getMessage());
-            }
-            try {
-                Thread.sleep(INTERVALO_MS);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                activo = false;
-            }
+    private void verificarConManejoDeErrores() {
+        try {
+            verificarUnaVez();
+        } catch (RuntimeException e) {
+            log.error("No fue posible verificar los vencimientos de suscripciones", e);
         }
     }
 
     void verificarUnaVez() {
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = LocalDate.now(reloj);
         List<Suscripcion> suscripciones = suscripcionDAO.obtenerTodos();
 
         for (Suscripcion s : suscripciones) {
@@ -82,23 +90,37 @@ public class NotificacionVencimientoService {
             if (s.getFechaFin().isBefore(hoy) && !"VENCIDA".equals(s.getEstado())) {
                 s.setEstado("VENCIDA");
                 suscripcionDAO.guardar(s);
-            } else if (!s.getFechaFin().isBefore(hoy)
+                pendientesDeNotificar.remove(s.getIdSuscripcion());
+            } else if ("ACTIVA".equals(s.getEstado())
+                    && !s.getFechaFin().isBefore(hoy)
                     && !s.getFechaFin().isAfter(hoy.plusDays(DIAS_AVISO_PREVIO))) {
-                pendientesDeNotificar.offer(s);
+                pendientesDeNotificar.put(s.getIdSuscripcion(), s);
+            } else {
+                pendientesDeNotificar.remove(s.getIdSuscripcion());
             }
         }
     }
 
     /** Consultado por ReporteController/AdministradorController para mostrar avisos pendientes. */
     public List<Suscripcion> obtenerNotificacionesPendientes() {
-        return new ArrayList<>(pendientesDeNotificar);
+        List<Suscripcion> pendientes = new ArrayList<>(pendientesDeNotificar.values());
+        pendientes.sort(Comparator.comparing(Suscripcion::getFechaFin)
+                .thenComparing(Suscripcion::getIdSuscripcion));
+        return pendientes;
     }
 
     @PreDestroy
     public void detener() {
-        activo = false;
-        if (hiloVerificador != null) {
-            hiloVerificador.interrupt();
+        if (ejecutor == null) {
+            return;
+        }
+        ejecutor.shutdownNow();
+        try {
+            if (!ejecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                log.warn("El verificador de vencimientos no finalizo dentro del tiempo esperado");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 }

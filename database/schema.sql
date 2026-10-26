@@ -113,6 +113,28 @@ CREATE TABLE IF NOT EXISTS sesion (
 );
 CREATE INDEX IF NOT EXISTS ix_sesion_cliente ON sesion (id_cliente);
 
+-- Impide registrar o reprogramar una sesion PROGRAMADA con una fecha pasada,
+-- incluso cuando la escritura se realiza fuera de la API. Se usa un trigger
+-- porque una comparacion con la hora actual no es un invariante permanente
+-- apropiado para una restriccion CHECK.
+CREATE OR REPLACE FUNCTION validar_sesion_programada_futura()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.estado = 'PROGRAMADA'
+            AND NEW.hora_inicio <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/El_Salvador') THEN
+        RAISE EXCEPTION 'La hora de inicio de una sesion programada debe ser futura'
+            USING ERRCODE = '22007';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sesion_programada_futura ON sesion;
+CREATE TRIGGER trg_sesion_programada_futura
+    BEFORE INSERT OR UPDATE OF hora_inicio, estado ON sesion
+    FOR EACH ROW
+    EXECUTE FUNCTION validar_sesion_programada_futura();
+
 -- ---------------------------------------------------------------------
 -- acceso  (intentos de ingreso por QR simulado, HU-003)
 -- id_cliente NO tiene FOREIGN KEY a proposito: AccesoService tambien

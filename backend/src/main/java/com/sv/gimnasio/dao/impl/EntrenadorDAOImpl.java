@@ -9,7 +9,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,11 +37,7 @@ public class EntrenadorDAOImpl extends BaseJdbcDAO implements EntrenadorDAO {
         try (Connection con = abrirConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            List<Entrenador> entrenadores = new ArrayList<>();
-            while (rs.next()) {
-                entrenadores.add(mapear(rs));
-            }
-            return entrenadores;
+            return leerLista(rs, this::mapear);
         } catch (SQLException e) {
             throw error("listar entrenadores", e);
         }

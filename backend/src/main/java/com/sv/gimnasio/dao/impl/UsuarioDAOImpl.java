@@ -10,7 +10,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,11 +40,7 @@ public class UsuarioDAOImpl extends BaseJdbcDAO implements UsuarioDAO {
         try (Connection con = abrirConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            List<Usuario> usuarios = new ArrayList<>();
-            while (rs.next()) {
-                usuarios.add(mapear(rs));
-            }
-            return usuarios;
+            return leerLista(rs, this::mapear);
         } catch (SQLException e) {
             throw error("listar usuarios", e);
         }
