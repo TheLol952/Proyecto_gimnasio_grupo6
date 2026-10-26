@@ -123,22 +123,40 @@ necesidades de la entrega:
 El código continúa pudiendo ejecutarse sin contenedores mediante las
 instrucciones de la sección **Ejecución local alternativa**.
 
-## Instalación de Docker desde la terminal
+## Instalación de Docker Desktop desde la terminal
 
-### Windows 10/11
+### Windows 10/11 Pro o Enterprise sin WSL
 
-Docker Desktop utiliza WSL 2 para ejecutar los contenedores Linux del proyecto.
-Abrir PowerShell como administrador y ejecutar:
+El proyecto utiliza contenedores Linux, pero no obliga a instalar WSL. Docker
+Desktop puede ejecutarlos mediante su backend Hyper-V. Esta modalidad requiere
+una edición de Windows compatible con Hyper-V, virtualización habilitada en
+BIOS/UEFI y una instalación de Docker Desktop para todos los usuarios. Windows
+Home no incluye Hyper-V; en esa edición sería necesario usar WSL 2 u otro equipo
+compatible.
+
+Abrir **Windows PowerShell como administrador** y ejecutar:
 
 ```powershell
-wsl --install
-wsl --update
-winget install --exact --id Docker.DockerDesktop
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart
+Enable-WindowsOptionalFeature -Online -FeatureName Containers -All -NoRestart
+
+$dockerInstaller = Join-Path $env:TEMP "DockerDesktopInstaller.exe"
+Invoke-WebRequest `
+  -Uri "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe" `
+  -OutFile $dockerInstaller
+
+Start-Process $dockerInstaller -Wait -ArgumentList `
+  "install", `
+  "--backend=hyper-v", `
+  "--always-run-service", `
+  "--no-windows-containers", `
+  "--accept-license"
 ```
 
-Si Windows solicita reiniciar después de instalar WSL, hacerlo antes de
-continuar. Luego iniciar Docker Desktop desde el menú Inicio y esperar a que el
-motor indique que está listo. Comprobar la instalación en una nueva terminal:
+Reiniciar Windows al terminar para activar Hyper-V. Después, iniciar Docker
+Desktop desde el menú Inicio y esperar a que el motor indique que está listo.
+La aplicación debe permanecer en el modo predeterminado de **contenedores
+Linux**. Comprobar la instalación en una nueva terminal:
 
 ```powershell
 docker --version
@@ -148,28 +166,7 @@ docker run --rm hello-world
 
 Documentación oficial:
 [Docker Desktop para Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
-y [WinGet](https://learn.microsoft.com/windows/package-manager/winget/).
-
-### Ubuntu Linux
-
-Para esta demostración académica puede utilizarse el instalador oficial de
-Docker para entornos de desarrollo:
-
-```bash
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker "$USER"
-newgrp docker
-docker run --rm hello-world
-docker compose version
-```
-
-El grupo `docker` permite administrar contenedores con privilegios elevados;
-solo debe agregarse un usuario de confianza. Para servidores o producción se
-recomienda instalar desde el repositorio `apt` oficial en lugar del script de
-conveniencia. Véanse las guías oficiales de
-[instalación en Ubuntu](https://docs.docker.com/engine/install/ubuntu/) y
-[configuración posterior](https://docs.docker.com/engine/install/linux-postinstall/).
+y [habilitación de Hyper-V](https://learn.microsoft.com/windows-server/virtualization/hyper-v/get-started/install-hyper-v?pivots=windows).
 
 ## Ejecución rápida para evaluación
 
