@@ -23,8 +23,8 @@ public class Sesion implements Serializable {
         this.idSesion = idSesion;
         this.idCliente = idCliente;
         this.idEntrenador = idEntrenador;
-        this.horaInicio = horaInicio;
-        this.horaFin = horaFin;
+        setHoraInicio(horaInicio);
+        setHoraFin(horaFin);
         this.estado = estado;
     }
 
@@ -57,6 +57,9 @@ public class Sesion implements Serializable {
     }
 
     public void setHoraInicio(LocalDateTime horaInicio) {
+        if (horaInicio != null && horaFin != null && !horaInicio.isBefore(horaFin)) {
+            throw new IllegalArgumentException("La hora de inicio debe ser anterior a la hora de fin.");
+        }
         this.horaInicio = horaInicio;
     }
 
@@ -65,6 +68,9 @@ public class Sesion implements Serializable {
     }
 
     public void setHoraFin(LocalDateTime horaFin) {
+        if (horaInicio != null && horaFin != null && !horaFin.isAfter(horaInicio)) {
+            throw new IllegalArgumentException("La hora de fin debe ser posterior a la hora de inicio.");
+        }
         this.horaFin = horaFin;
     }
 

@@ -23,8 +23,8 @@ public class Suscripcion implements Serializable {
         this.idSuscripcion = idSuscripcion;
         this.idCliente = idCliente;
         this.idPlan = idPlan;
-        this.fechaInicio = fechaInicio;
-        this.fechaFin = fechaFin;
+        setFechaInicio(fechaInicio);
+        setFechaFin(fechaFin);
         this.estado = estado;
     }
 
@@ -57,6 +57,9 @@ public class Suscripcion implements Serializable {
     }
 
     public void setFechaInicio(LocalDate fechaInicio) {
+        if (fechaInicio != null && fechaFin != null && fechaFin.isBefore(fechaInicio)) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser posterior a la fecha de fin.");
+        }
         this.fechaInicio = fechaInicio;
     }
 

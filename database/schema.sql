@@ -120,7 +120,8 @@ CREATE INDEX IF NOT EXISTS ix_sesion_cliente ON sesion (id_cliente);
 CREATE OR REPLACE FUNCTION validar_sesion_programada_futura()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.estado = 'PROGRAMADA' AND NEW.hora_inicio <= LOCALTIMESTAMP THEN
+    IF NEW.estado = 'PROGRAMADA'
+            AND NEW.hora_inicio <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/El_Salvador') THEN
         RAISE EXCEPTION 'La hora de inicio de una sesion programada debe ser futura'
             USING ERRCODE = '22007';
     END IF;

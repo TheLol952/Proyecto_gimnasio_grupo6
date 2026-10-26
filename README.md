@@ -205,7 +205,7 @@ cd backend
 mvn clean test
 ```
 
-La suite incluye 20 pruebas JUnit/Mockito para servicios, controlador,
+La suite incluye 22 pruebas JUnit/Mockito para servicios, controlador,
 validaciones, utilidades, mapeo JDBC genérico, reglas de fecha, traslapes, QR,
 disponibilidad, suscripciones y concurrencia.
 
