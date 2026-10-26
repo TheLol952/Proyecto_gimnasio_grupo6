@@ -85,6 +85,38 @@
           </div>
         </div>
 
+        <div class="availability">
+          <h3>Consultar horarios disponibles</h3>
+          <div class="availability-controls">
+            <label>
+              Fecha
+              <input v-model="fechaConsulta" type="date" :min="fechaActual" />
+            </label>
+            <button
+              class="secondary"
+              type="button"
+              :disabled="cargandoDisponibilidad || !form.idEntrenador || !fechaConsulta"
+              @click="cargarDisponibilidad"
+            >
+              {{ cargandoDisponibilidad ? "Consultando..." : "Consultar disponibilidad" }}
+            </button>
+          </div>
+          <div v-if="horariosDisponibles.length" class="slots">
+            <button
+              v-for="horario in horariosDisponibles"
+              :key="horario.horaInicio"
+              class="slot"
+              type="button"
+              @click="seleccionarHorario(horario)"
+            >
+              {{ formatearHora(horario.horaInicio) }} - {{ formatearHora(horario.horaFin) }}
+            </button>
+          </div>
+          <small v-else-if="disponibilidadConsultada && !cargandoDisponibilidad">
+            No hay franjas disponibles para la fecha seleccionada.
+          </small>
+        </div>
+
         <div v-if="cargando" class="empty">Cargando agenda...</div>
         <div v-else-if="sesiones.length === 0" class="empty">No hay sesiones programadas.</div>
 
@@ -126,10 +158,15 @@ const clientes = ref([]);
 const entrenadores = ref([]);
 const cargando = ref(false);
 const guardando = ref(false);
+const cargandoDisponibilidad = ref(false);
 const mensaje = ref("");
 const error = ref(false);
 const form = ref({ idCliente: "", idEntrenador: "", horaInicio: "", horaFin: "" });
 const fechaHoraMinima = ref("");
+const fechaActual = ref("");
+const fechaConsulta = ref("");
+const horariosDisponibles = ref([]);
+const disponibilidadConsultada = ref(false);
 
 function calcularFechaHoraMinima() {
   const fecha = new Date(Date.now() + 60_000);
@@ -140,6 +177,40 @@ function calcularFechaHoraMinima() {
 
 function actualizarFechaHoraMinima() {
   fechaHoraMinima.value = calcularFechaHoraMinima();
+}
+
+function fechaLocal(fecha) {
+  const desplazamiento = fecha.getTimezoneOffset() * 60_000;
+  return new Date(fecha.getTime() - desplazamiento).toISOString().slice(0, 10);
+}
+
+function formatearHora(fecha) {
+  return new Intl.DateTimeFormat("es-SV", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(fecha));
+}
+
+function seleccionarHorario(horario) {
+  form.value.horaInicio = horario.horaInicio.slice(0, 16);
+  form.value.horaFin = horario.horaFin.slice(0, 16);
+}
+
+async function cargarDisponibilidad() {
+  cargandoDisponibilidad.value = true;
+  disponibilidadConsultada.value = true;
+  try {
+    const { data } = await api.get("/sesiones/disponibilidad", {
+      params: { idEntrenador: form.value.idEntrenador, fecha: fechaConsulta.value },
+    });
+    horariosDisponibles.value = data;
+  } catch (e) {
+    horariosDisponibles.value = [];
+    mensaje.value = obtenerMensajeError(e, "No se pudo consultar la disponibilidad.");
+    error.value = true;
+  } finally {
+    cargandoDisponibilidad.value = false;
+  }
 }
 
 function obtenerMensajeError(e, mensajePorDefecto) {
@@ -230,6 +301,11 @@ async function agendar() {
 
 onMounted(() => {
   actualizarFechaHoraMinima();
+  const hoy = new Date();
+  const manana = new Date(hoy);
+  manana.setDate(hoy.getDate() + 1);
+  fechaActual.value = fechaLocal(hoy);
+  fechaConsulta.value = fechaLocal(manana);
   cargarDatos();
 });
 </script>
@@ -251,6 +327,10 @@ button { border: 0; border-radius: 9px; padding: 10px 14px; cursor: pointer; fon
 button:disabled { opacity: .6; cursor: not-allowed; }
 .primary { width: 100%; }
 .secondary { border: 1px solid #d0d5dd; background: #fff; color: #1f4e5f; }
+.availability { border: 1px solid #e4e7ec; border-radius: 10px; padding: 14px; margin-bottom: 18px; }
+.availability-controls { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.slots { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.slot { background: #ecfdf3; color: #067647; border: 1px solid #abefc6; }
 .table-wrapper { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid #eaecf0; white-space: nowrap; }

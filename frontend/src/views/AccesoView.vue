@@ -7,8 +7,9 @@
         <input v-model="form.idCliente" placeholder="CLI-XXXXXXXX" required />
       </label>
       <label>Código QR (simulado)
-        <input v-model="form.codigoQR" placeholder="QR-DEMO-001" />
+        <input v-model="form.codigoQR" placeholder="QR-XXXXXXXX" required />
       </label>
+      <small>Formato esperado: para CLI-ABC12345 usa QR-ABC12345.</small>
       <button type="submit">Simular escaneo</button>
     </form>
 

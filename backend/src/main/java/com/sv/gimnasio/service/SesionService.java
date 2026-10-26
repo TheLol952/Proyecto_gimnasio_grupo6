@@ -3,13 +3,19 @@ package com.sv.gimnasio.service;
 import com.sv.gimnasio.dao.ClienteDAO;
 import com.sv.gimnasio.dao.EntrenadorDAO;
 import com.sv.gimnasio.dao.SesionDAO;
+import com.sv.gimnasio.dto.HorarioDisponibleDTO;
 import com.sv.gimnasio.dto.SesionRequestDTO;
+import com.sv.gimnasio.model.Entrenador;
 import com.sv.gimnasio.model.Sesion;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -79,5 +85,55 @@ public class SesionService {
 
     public List<Sesion> listarTodas() {
         return sesionDAO.obtenerTodos();
+    }
+
+    /**
+     * HU-005: calcula franjas de una hora dentro del turno del entrenador y
+     * excluye las sesiones programadas que se traslapan.
+     */
+    public List<HorarioDisponibleDTO> consultarDisponibilidad(String idEntrenador, LocalDate fecha) {
+        if (fecha == null) {
+            throw new IllegalArgumentException("La fecha de consulta es obligatoria.");
+        }
+        LocalDate hoy = LocalDate.now(reloj);
+        if (fecha.isBefore(hoy)) {
+            throw new IllegalArgumentException("No se puede consultar disponibilidad en una fecha pasada.");
+        }
+
+        Entrenador entrenador = entrenadorDAO.obtenerPorId(idEntrenador)
+                .orElseThrow(() -> new NoSuchElementException(
+                        "Entrenador no encontrado: " + idEntrenador));
+        LocalTime[] limites = limitesTurno(entrenador.getTurno());
+        LocalDateTime cursor = LocalDateTime.of(fecha, limites[0]);
+        LocalDateTime finTurno = LocalDateTime.of(fecha, limites[1]);
+        LocalDateTime ahora = LocalDateTime.now(reloj);
+        List<Sesion> agenda = sesionDAO.obtenerPorEntrenador(idEntrenador).stream()
+                .filter(sesion -> !"CANCELADA".equals(sesion.getEstado()))
+                .toList();
+        List<HorarioDisponibleDTO> disponibles = new ArrayList<>();
+
+        while (!cursor.plusHours(1).isAfter(finTurno)) {
+            LocalDateTime inicioFranja = cursor;
+            LocalDateTime finFranja = cursor.plusHours(1);
+            boolean futura = inicioFranja.isAfter(ahora);
+            boolean ocupada = agenda.stream().anyMatch(sesion ->
+                    inicioFranja.isBefore(sesion.getHoraFin())
+                            && finFranja.isAfter(sesion.getHoraInicio()));
+            if (futura && !ocupada) {
+                disponibles.add(new HorarioDisponibleDTO(inicioFranja, finFranja));
+            }
+            cursor = finFranja;
+        }
+        return disponibles;
+    }
+
+    private LocalTime[] limitesTurno(String turno) {
+        return switch (turno == null ? "" : turno.toUpperCase()) {
+            case "MATUTINO" -> new LocalTime[]{LocalTime.of(6, 0), LocalTime.of(12, 0)};
+            case "VESPERTINO" -> new LocalTime[]{LocalTime.of(12, 0), LocalTime.of(18, 0)};
+            case "NOCTURNO" -> new LocalTime[]{LocalTime.of(18, 0), LocalTime.of(22, 0)};
+            case "MIXTO" -> new LocalTime[]{LocalTime.of(6, 0), LocalTime.of(22, 0)};
+            default -> throw new IllegalStateException("El entrenador no tiene un turno valido.");
+        };
     }
 }
